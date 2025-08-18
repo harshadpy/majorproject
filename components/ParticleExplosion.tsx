@@ -7,7 +7,7 @@ import Animated, {
   withSpring,
   interpolate,
   runOnJS,
-} from 'react-native-reanimated';
+} from 'react-native-worklets';
 
 const { width, height } = Dimensions.get('window');
 
