@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, Camera, History, Book, User, Zap, Bug, Leaf, TrendingUp, Settings } from 'lucide-react-native';
+import { Chrome as Home, Camera, History, Book, User, Zap, Bug, Leaf, TrendingUp, Settings } from 'lucide-react-native';
 import { FloatingTabBar } from '@/components/FloatingTabBar';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 
