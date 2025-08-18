@@ -20,7 +20,7 @@
       "expo-router", 
       "expo-font", 
       "expo-web-browser",
-      "react-native-reanimated/plugin"
+      "react-native-worklets/plugin"
     ],
     "experiments": {
       "typedRoutes": true
