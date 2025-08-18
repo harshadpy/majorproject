@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
   interpolate,
   runOnJS,
-} from 'react-native-reanimated';
+} from 'react-native-worklets';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
