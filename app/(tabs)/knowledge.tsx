@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
   interpolate,
   withDelay,
-} from 'react-native-worklets';
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { HolographicCard } from '@/components/HolographicCard';
 import { PulsingButton } from '@/components/PulsingButton';
