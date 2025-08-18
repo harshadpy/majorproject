@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
   interpolate,
   Easing,
-} from 'react-native-worklets';
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 
