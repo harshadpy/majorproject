@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
   interpolate,
   Easing,
-} from 'react-native-reanimated';
+} from 'react-native-worklets';
 import { LinearGradient } from 'expo-linear-gradient';
 import { HolographicCard } from '@/components/HolographicCard';
 import { PulsingButton } from '@/components/PulsingButton';
