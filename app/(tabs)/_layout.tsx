@@ -1,70 +1,70 @@
+import React from 'react';
+import { View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Camera, History, Book, User } from 'lucide-react-native';
+import { Home, Camera, History, Book, User, Zap, Bug, Leaf, TrendingUp, Settings } from 'lucide-react-native';
+import { FloatingTabBar } from '@/components/FloatingTabBar';
+import { AnimatedBackground } from '@/components/AnimatedBackground';
 
 export default function TabLayout() {
+  const tabs = [
+    {
+      key: 'index',
+      title: 'Farm',
+      icon: <Home size={24} color="#ffffff" />,
+      activeIcon: <Home size={24} color="#00ff41" />,
+    },
+    {
+      key: 'camera',
+      title: 'Detect',
+      icon: <Camera size={24} color="#ffffff" />,
+      activeIcon: <Zap size={24} color="#00ff41" />,
+    },
+    {
+      key: 'history',
+      title: 'History',
+      icon: <History size={24} color="#ffffff" />,
+      activeIcon: <TrendingUp size={24} color="#00ff41" />,
+    },
+    {
+      key: 'knowledge',
+      title: 'Knowledge',
+      icon: <Book size={24} color="#ffffff" />,
+      activeIcon: <Leaf size={24} color="#00ff41" />,
+    },
+    {
+      key: 'profile',
+      title: 'Profile',
+      icon: <User size={24} color="#ffffff" />,
+      activeIcon: <Settings size={24} color="#00ff41" />,
+    },
+  ];
+
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopColor: '#e5e7eb',
-          height: 80,
-          paddingBottom: 20,
-          paddingTop: 10,
-        },
-        tabBarActiveTintColor: '#16a34a',
-        tabBarInactiveTintColor: '#6b7280',
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ size, color }) => (
-            <Home size={size} color={color} />
-          ),
+    <AnimatedBackground>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: { display: 'none' }, // Hide default tab bar
         }}
-      />
-      <Tabs.Screen
-        name="camera"
-        options={{
-          title: 'Detection',
-          tabBarIcon: ({ size, color }) => (
-            <Camera size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'History',
-          tabBarIcon: ({ size, color }) => (
-            <History size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="knowledge"
-        options={{
-          title: 'Knowledge',
-          tabBarIcon: ({ size, color }) => (
-            <Book size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ size, color }) => (
-            <User size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+        tabBar={(props) => (
+          <FloatingTabBar
+            tabs={tabs}
+            activeTab={props.state.routeNames[props.state.index]}
+            onTabPress={(tabKey) => {
+              const index = props.state.routeNames.indexOf(tabKey);
+              if (index !== -1) {
+                props.navigation.navigate(props.state.routeNames[index]);
+              }
+            }}
+          />
+        )}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="camera" />
+        <Tabs.Screen name="history" />
+        <Tabs.Screen name="knowledge" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
+    </AnimatedBackground>
   );
 }

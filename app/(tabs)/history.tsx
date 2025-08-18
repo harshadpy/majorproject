@@ -1,16 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { History as HistoryIcon, Calendar, CircleAlert as AlertCircle, CircleCheck as CheckCircle, TrendingUp, Filter } from 'lucide-react-native';
+import { History as HistoryIcon, Calendar, CircleAlert as AlertCircle, CircleCheck as CheckCircle, TrendingUp, Filter, Zap, Award } from 'lucide-react-native';
 import { DetectionService } from '@/services/DetectionService';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  interpolate,
+  withDelay,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { HolographicCard } from '@/components/HolographicCard';
+import { PulsingButton } from '@/components/PulsingButton';
+
+const { width } = Dimensions.get('window');
 
 export default function HistoryTab() {
   const [detections, setDetections] = useState<any[]>([]);
   const [filterType, setFilterType] = useState<'all' | 'disease' | 'pest'>('all');
   const [isLoading, setIsLoading] = useState(true);
+  const headerAnimation = useSharedValue(0);
+  const statsAnimation = useSharedValue(0);
 
   useEffect(() => {
     loadDetectionHistory();
+    
+    headerAnimation.value = withTiming(1, { duration: 800 });
+    statsAnimation.value = withDelay(300, withTiming(1, { duration: 1000 }));
   }, []);
 
   const loadDetectionHistory = async () => {
@@ -25,11 +43,11 @@ export default function HistoryTab() {
     }
   };
 
-  // Mock data for demonstration since getDetectionHistory returns empty array
+  // Enhanced mock data with futuristic styling
   const mockDetections = [
     {
       id: '1',
-      timestamp: Date.now() - 86400000, // 1 day ago
+      timestamp: Date.now() - 86400000,
       type: 'disease',
       crop: 'tomato',
       result: {
@@ -37,13 +55,14 @@ export default function HistoryTab() {
         scientific_name: 'Alternaria solani',
         severity: 'Medium',
         confidence: 85,
-        description: 'Early blight is a common fungal disease affecting tomatoes.',
+        description: 'AI detected early blight fungal infection with 85% confidence.',
       },
-      image: 'https://images.pexels.com/photos/1459339/pexels-photo-1459339.jpeg?auto=compress&cs=tinysrgb&w=400'
+      image: 'https://images.pexels.com/photos/1459339/pexels-photo-1459339.jpeg?auto=compress&cs=tinysrgb&w=400',
+      status: 'treated'
     },
     {
       id: '2',
-      timestamp: Date.now() - 172800000, // 2 days ago
+      timestamp: Date.now() - 172800000,
       type: 'pest',
       crop: 'pepper',
       result: {
@@ -51,13 +70,14 @@ export default function HistoryTab() {
         scientific_name: 'Aphidoidea',
         severity: 'Low',
         confidence: 92,
-        description: 'Small insects that feed on plant sap.',
+        description: 'Small sap-feeding insects detected on pepper plants.',
       },
-      image: 'https://images.pexels.com/photos/1407305/pexels-photo-1407305.jpeg?auto=compress&cs=tinysrgb&w=400'
+      image: 'https://images.pexels.com/photos/1407305/pexels-photo-1407305.jpeg?auto=compress&cs=tinysrgb&w=400',
+      status: 'monitoring'
     },
     {
       id: '3',
-      timestamp: Date.now() - 259200000, // 3 days ago
+      timestamp: Date.now() - 259200000,
       type: 'disease',
       crop: 'corn',
       result: {
@@ -65,9 +85,10 @@ export default function HistoryTab() {
         scientific_name: 'Puccinia sorghi',
         severity: 'High',
         confidence: 78,
-        description: 'Fungal disease causing rust-colored pustules on leaves.',
+        description: 'Critical fungal infection requiring immediate treatment.',
       },
-      image: 'https://images.pexels.com/photos/2518861/pexels-photo-2518861.jpeg?auto=compress&cs=tinysrgb&w=400'
+      image: 'https://images.pexels.com/photos/2518861/pexels-photo-2518861.jpeg?auto=compress&cs=tinysrgb&w=400',
+      status: 'critical'
     },
   ];
 
@@ -82,131 +103,121 @@ export default function HistoryTab() {
     const diffTime = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    return `${diffDays} days ago`;
+    if (diffDays === 0) return 'TODAY';
+    if (diffDays === 1) return 'YESTERDAY';
+    return `${diffDays} DAYS AGO`;
   };
 
   const getSeverityColor = (severity: string) => {
     return DetectionService.getSeverityColor(severity);
   };
 
-  const getSeverityIcon = (severity: string) => {
-    const color = getSeverityColor(severity);
-    if (severity.toLowerCase() === 'low') return <CheckCircle size={16} color={color} />;
-    return <AlertCircle size={16} color={color} />;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'treated': return '#00ff41';
+      case 'monitoring': return '#ffd700';
+      case 'critical': return '#ff0040';
+      default: return '#00d4ff';
+    }
   };
 
   const getStats = () => {
     const total = displayDetections.length;
     const diseases = displayDetections.filter(d => d.type === 'disease').length;
     const pests = displayDetections.filter(d => d.type === 'pest').length;
-    const highSeverity = displayDetections.filter(d => d.result.severity.toLowerCase() === 'high').length;
+    const critical = displayDetections.filter(d => d.result.severity.toLowerCase() === 'high').length;
 
-    return { total, diseases, pests, highSeverity };
+    return { total, diseases, pests, critical };
   };
 
   const stats = getStats();
 
+  const animatedHeaderStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(headerAnimation.value, [0, 1], [-50, 0]);
+    const opacity = interpolate(headerAnimation.value, [0, 1], [0, 1]);
+
+    return {
+      transform: [{ translateY }],
+      opacity,
+    };
+  });
+
+  const animatedStatsStyle = useAnimatedStyle(() => {
+    const scale = interpolate(statsAnimation.value, [0, 1], [0.8, 1]);
+    const opacity = interpolate(statsAnimation.value, [0, 1], [0, 1]);
+
+    return {
+      transform: [{ scale }],
+      opacity,
+    };
+  });
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <HistoryIcon size={24} color="#16a34a" />
-        <Text style={styles.headerTitle}>Detection History</Text>
-      </View>
+      <Animated.View style={[styles.header, animatedHeaderStyle]}>
+        <HolographicCard style={styles.headerCard} intensity={80}>
+          <View style={styles.headerContent}>
+            <HistoryIcon size={28} color="#00ff41" />
+            <Text style={styles.headerTitle}>🕒 DETECTION ARCHIVE</Text>
+          </View>
+        </HolographicCard>
+      </Animated.View>
 
-      {/* Stats Overview */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.total}</Text>
-          <Text style={styles.statLabel}>Total Scans</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.diseases}</Text>
-          <Text style={styles.statLabel}>Diseases</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.pests}</Text>
-          <Text style={styles.statLabel}>Pests</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.highSeverity}</Text>
-          <Text style={styles.statLabel}>Critical</Text>
-        </View>
-      </View>
+      {/* Futuristic Stats */}
+      <Animated.View style={[styles.statsContainer, animatedStatsStyle]}>
+        <HolographicCard style={styles.statsCard} intensity={70}>
+          <View style={styles.statsGrid}>
+            <StatItem title="TOTAL SCANS" value={stats.total} color="#00ff41" icon={Zap} />
+            <StatItem title="DISEASES" value={stats.diseases} color="#ff0040" icon={AlertCircle} />
+            <StatItem title="PESTS" value={stats.pests} color="#ff6b00" icon={AlertCircle} />
+            <StatItem title="CRITICAL" value={stats.critical} color="#ffd700" icon={Award} />
+          </View>
+        </HolographicCard>
+      </Animated.View>
 
       {/* Filter Buttons */}
       <View style={styles.filterContainer}>
-        <TouchableOpacity
-          style={[styles.filterButton, filterType === 'all' && styles.filterButtonActive]}
-          onPress={() => setFilterType('all')}
-        >
-          <Text style={[styles.filterText, filterType === 'all' && styles.filterTextActive]}>
-            All
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterButton, filterType === 'disease' && styles.filterButtonActive]}
-          onPress={() => setFilterType('disease')}
-        >
-          <Text style={[styles.filterText, filterType === 'disease' && styles.filterTextActive]}>
-            Diseases
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterButton, filterType === 'pest' && styles.filterButtonActive]}
-          onPress={() => setFilterType('pest')}
-        >
-          <Text style={[styles.filterText, filterType === 'pest' && styles.filterTextActive]}>
-            Pests
-          </Text>
-        </TouchableOpacity>
+        <HolographicCard style={styles.filterCard} intensity={60}>
+          <View style={styles.filterButtons}>
+            {[
+              { key: 'all', label: '🌐 ALL', color: '#00d4ff' },
+              { key: 'disease', label: '🦠 DISEASES', color: '#ff0040' },
+              { key: 'pest', label: '🐛 PESTS', color: '#ff6b00' },
+            ].map((filter) => (
+              <TouchableOpacity
+                key={filter.key}
+                style={[
+                  styles.filterButton,
+                  filterType === filter.key && [styles.filterButtonActive, { borderColor: filter.color }]
+                ]}
+                onPress={() => setFilterType(filter.key as any)}
+              >
+                <Text style={[
+                  styles.filterText,
+                  filterType === filter.key && [styles.filterTextActive, { color: filter.color }]
+                ]}>
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </HolographicCard>
       </View>
 
       <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
         {filteredDetections.length === 0 ? (
           <View style={styles.emptyState}>
-            <HistoryIcon size={48} color="#9ca3af" />
-            <Text style={styles.emptyTitle}>No detections yet</Text>
-            <Text style={styles.emptyText}>
-              Start scanning your plants to build your detection history
-            </Text>
+            <HolographicCard style={styles.emptyCard} intensity={60}>
+              <HistoryIcon size={64} color="#00ff41" />
+              <Text style={styles.emptyTitle}>🚀 NO SCANS YET</Text>
+              <Text style={styles.emptyText}>
+                Start scanning your crops to build your AI detection archive! 🤖
+              </Text>
+            </HolographicCard>
           </View>
         ) : (
           filteredDetections.map((detection, index) => (
-            <View key={detection.id || index} style={styles.detectionCard}>
-              <Image source={{ uri: detection.image }} style={styles.detectionImage} />
-              
-              <View style={styles.detectionInfo}>
-                <View style={styles.detectionHeader}>
-                  <Text style={styles.detectionName}>{detection.result.name}</Text>
-                  <View style={styles.severityContainer}>
-                    {getSeverityIcon(detection.result.severity)}
-                    <Text style={[styles.severityText, { color: getSeverityColor(detection.result.severity) }]}>
-                      {detection.result.severity}
-                    </Text>
-                  </View>
-                </View>
-                
-                <Text style={styles.scientificName}>{detection.result.scientific_name}</Text>
-                
-                <View style={styles.detectionMeta}>
-                  <View style={styles.metaItem}>
-                    <Calendar size={14} color="#6b7280" />
-                    <Text style={styles.metaText}>{formatDate(detection.timestamp)}</Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <TrendingUp size={14} color="#6b7280" />
-                    <Text style={styles.metaText}>{detection.result.confidence}% confidence</Text>
-                  </View>
-                </View>
-                
-                <Text style={styles.cropType}>Crop: {detection.crop}</Text>
-                <Text style={styles.detectionDescription} numberOfLines={2}>
-                  {detection.result.description}
-                </Text>
-              </View>
-            </View>
+            <DetectionCard key={detection.id || index} detection={detection} index={index} />
           ))
         )}
       </ScrollView>
@@ -214,75 +225,205 @@ export default function HistoryTab() {
   );
 }
 
+const StatItem: React.FC<{
+  title: string;
+  value: number;
+  color: string;
+  icon: any;
+}> = ({ title, value, color, icon: IconComponent }) => {
+  return (
+    <View style={styles.statItem}>
+      <View style={[styles.statIconContainer, { backgroundColor: `${color}20` }]}>
+        <IconComponent size={20} color={color} />
+      </View>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text style={styles.statLabel}>{title}</Text>
+    </View>
+  );
+};
+
+const DetectionCard: React.FC<{ detection: any; index: number }> = ({ detection, index }) => {
+  const cardAnimation = useSharedValue(0);
+
+  useEffect(() => {
+    cardAnimation.value = withDelay(
+      index * 150,
+      withSpring(1, { damping: 15, stiffness: 200 })
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const translateX = interpolate(cardAnimation.value, [0, 1], [width, 0]);
+    const opacity = interpolate(cardAnimation.value, [0, 1], [0, 1]);
+
+    return {
+      transform: [{ translateX }],
+      opacity,
+    };
+  });
+
+  const getSeverityColor = (severity: string) => {
+    return DetectionService.getSeverityColor(severity);
+  };
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffTime = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'TODAY';
+    if (diffDays === 1) return 'YESTERDAY';
+    return `${diffDays} DAYS AGO`;
+  };
+
+  return (
+    <Animated.View style={[styles.detectionCard, animatedStyle]}>
+      <HolographicCard style={styles.detectionCardInner} intensity={60}>
+        <View style={styles.detectionContent}>
+          <Image source={{ uri: detection.image }} style={styles.detectionImage} />
+          
+          <View style={styles.detectionInfo}>
+            <View style={styles.detectionHeader}>
+              <Text style={styles.detectionName}>
+                🔬 {detection.result.name.toUpperCase()}
+              </Text>
+              <View style={[styles.statusIndicator, { backgroundColor: getSeverityColor(detection.result.severity) }]}>
+                <Text style={styles.statusText}>{detection.result.severity.toUpperCase()}</Text>
+              </View>
+            </View>
+            
+            <Text style={styles.scientificName}>📋 {detection.result.scientific_name}</Text>
+            
+            <View style={styles.detectionMeta}>
+              <View style={styles.metaItem}>
+                <Calendar size={14} color="#00ff41" />
+                <Text style={styles.metaText}>{formatDate(detection.timestamp)}</Text>
+              </View>
+              <View style={styles.metaItem}>
+                <TrendingUp size={14} color="#ffd700" />
+                <Text style={styles.metaText}>{detection.result.confidence}% ACCURACY</Text>
+              </View>
+            </View>
+            
+            <Text style={styles.cropType}>🌱 CROP: {detection.crop.toUpperCase()}</Text>
+            <Text style={styles.detectionDescription} numberOfLines={2}>
+              {detection.result.description}
+            </Text>
+
+            {detection.status && (
+              <View style={[styles.statusBadge, { backgroundColor: `${getSeverityColor(detection.result.severity)}20` }]}>
+                <Text style={[styles.statusBadgeText, { color: getSeverityColor(detection.result.severity) }]}>
+                  {detection.status.toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </HolographicCard>
+    </Animated.View>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+  },
+  headerCard: {
+    alignItems: 'center',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#ffffff',
     marginLeft: 12,
+    textShadowColor: 'rgba(0, 255, 65, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
     paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    marginBottom: 20,
+  },
+  statsCard: {
+    marginTop: 0,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
   statItem: {
-    flex: 1,
     alignItems: 'center',
+    flex: 1,
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   statValue: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: '900',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
-    fontWeight: '500',
+    fontSize: 10,
+    color: '#ffffff',
+    fontWeight: '700',
+    textAlign: 'center',
+    opacity: 0.8,
+    letterSpacing: 1,
   },
   filterContainer: {
-    flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#ffffff',
+    marginBottom: 20,
+  },
+  filterCard: {
+    marginTop: 0,
+  },
+  filterButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 20,
-    marginRight: 8,
-    backgroundColor: '#f3f4f6',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   filterButtonActive: {
-    backgroundColor: '#16a34a',
+    backgroundColor: 'rgba(0, 255, 65, 0.2)',
   },
   filterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4b5563',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 1,
   },
   filterTextActive: {
-    color: '#ffffff',
+    textShadowColor: 'rgba(0, 255, 65, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 5,
   },
   listContainer: {
     flex: 1,
+    paddingBottom: 100,
   },
   emptyState: {
     flex: 1,
@@ -291,92 +432,120 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 64,
   },
+  emptyCard: {
+    width: '100%',
+    alignItems: 'center',
+  },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#ffffff',
+    marginTop: 20,
+    marginBottom: 12,
+    textShadowColor: 'rgba(0, 255, 65, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#ffffff',
     textAlign: 'center',
     lineHeight: 24,
+    opacity: 0.9,
   },
   detectionCard: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  detectionCardInner: {
+    marginTop: 0,
+  },
+  detectionContent: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    marginVertical: 8,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   detectionImage: {
     width: 100,
     height: 120,
+    borderRadius: 12,
+    marginRight: 16,
   },
   detectionInfo: {
     flex: 1,
-    padding: 16,
   },
   detectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   detectionName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1f2937',
+    color: '#00ff41',
     flex: 1,
-    textTransform: 'capitalize',
+    textShadowColor: 'rgba(0, 255, 65, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 5,
   },
-  severityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  statusIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginLeft: 8,
   },
-  severityText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
+  statusText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 1,
   },
   scientificName: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#ffffff',
     fontStyle: 'italic',
-    marginBottom: 8,
+    marginBottom: 12,
+    opacity: 0.8,
   },
   detectionMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   metaText: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginLeft: 4,
+    fontSize: 11,
+    color: '#ffffff',
+    marginLeft: 6,
+    fontWeight: '600',
+    opacity: 0.9,
   },
   cropType: {
     fontSize: 12,
-    color: '#16a34a',
-    fontWeight: '600',
-    marginBottom: 4,
-    textTransform: 'capitalize',
+    color: '#ffd700',
+    fontWeight: '700',
+    marginBottom: 8,
+    letterSpacing: 1,
   },
   detectionDescription: {
     fontSize: 13,
-    color: '#4b5563',
+    color: '#ffffff',
     lineHeight: 18,
+    opacity: 0.9,
+    marginBottom: 8,
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
 });
