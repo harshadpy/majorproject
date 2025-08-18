@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
   interpolate,
   Easing,
-} from 'react-native-worklets';
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
