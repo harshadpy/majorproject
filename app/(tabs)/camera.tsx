@@ -1,26 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Camera as CameraIcon, FlipHorizontal, Zap, Bug, Leaf, Target, Crosshair, Scan } from 'lucide-react-native';
+import { Camera as CameraIcon, FlipHorizontal, Zap, Bug, Leaf, ArrowRight, CircleCheck as CheckCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { DetectionService } from '@/services/DetectionService';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  withSpring,
-  interpolate,
-  Easing,
-} from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import { HolographicCard } from '@/components/HolographicCard';
-import { PulsingButton } from '@/components/PulsingButton';
-import { ScanningOverlay } from '@/components/ScanningOverlay';
-import { ParticleExplosion } from '@/components/ParticleExplosion';
-
-const { width, height } = Dimensions.get('window');
 
 type DetectionType = 'disease' | 'pest';
 type CropType = 'tomato' | 'pepper' | 'corn' | 'wheat' | 'other';
@@ -33,39 +17,26 @@ export default function CameraTab() {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [selectedDetectionType, setSelectedDetectionType] = useState<DetectionType>('disease');
   const [selectedCrop, setSelectedCrop] = useState<CropType>('tomato');
-  const [showExplosion, setShowExplosion] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
   const cameraRef = useRef<CameraView>(null);
 
-  const scanAnimation = useSharedValue(0);
-  const pulseAnimation = useSharedValue(0);
-
-  useEffect(() => {
-    pulseAnimation.value = withRepeat(
-      withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
-  }, []);
-
   const detectionTypes = [
-    { key: 'disease' as DetectionType, label: '🦠 DISEASE', icon: Leaf, color: '#ff0040' },
-    { key: 'pest' as DetectionType, label: '🐛 PEST', icon: Bug, color: '#ff6b00' },
+    { key: 'disease' as DetectionType, label: 'Disease', icon: Leaf, color: '#dc2626' },
+    { key: 'pest' as DetectionType, label: 'Pest', icon: Bug, color: '#ea580c' },
   ];
 
   const cropTypes = [
-    { key: 'tomato' as CropType, label: '🍅 TOMATO' },
-    { key: 'pepper' as CropType, label: '🌶️ PEPPER' },
-    { key: 'corn' as CropType, label: '🌽 CORN' },
-    { key: 'wheat' as CropType, label: '🌾 WHEAT' },
-    { key: 'other' as CropType, label: '🌱 OTHER' },
+    { key: 'tomato' as CropType, label: 'Tomato' },
+    { key: 'pepper' as CropType, label: 'Pepper' },
+    { key: 'corn' as CropType, label: 'Corn' },
+    { key: 'wheat' as CropType, label: 'Wheat' },
+    { key: 'other' as CropType, label: 'Other' },
   ];
 
   useEffect(() => {
     (async () => {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('🚨 ACCESS DENIED', 'Camera roll permissions required for AI analysis!');
+        Alert.alert('Sorry, we need camera roll permissions to make this work!');
       }
     })();
   }, []);
@@ -78,22 +49,14 @@ export default function CameraTab() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
-          <HolographicCard style={styles.permissionCard} intensity={100}>
-            <View style={styles.permissionContent}>
-              <CameraIcon size={80} color="#00ff41" />
-              <Text style={styles.permissionTitle}>🚀 CAMERA ACCESS REQUIRED</Text>
-              <Text style={styles.permissionText}>
-                Enable camera to unleash AI-powered plant detection technology! 🤖
-              </Text>
-              <PulsingButton
-                title="🔓 GRANT ACCESS"
-                onPress={requestPermission}
-                variant="primary"
-                size="large"
-                style={styles.permissionButton}
-              />
-            </View>
-          </HolographicCard>
+          <CameraIcon size={64} color="#6b7280" />
+          <Text style={styles.permissionTitle}>Camera Permission Required</Text>
+          <Text style={styles.permissionText}>
+            We need access to your camera to detect plant diseases and pests
+          </Text>
+          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -106,14 +69,12 @@ export default function CameraTab() {
   const takePicture = async () => {
     if (cameraRef.current) {
       try {
-        setShowExplosion(true);
         const photo = await cameraRef.current.takePictureAsync();
         if (photo) {
           setCapturedImage(photo.uri);
         }
-        setTimeout(() => setShowExplosion(false), 500);
       } catch (error) {
-        Alert.alert('🚨 CAPTURE FAILED', 'Unable to capture image. Try again!');
+        Alert.alert('Error', 'Failed to take picture');
         console.error(error);
       }
     }
@@ -132,7 +93,7 @@ export default function CameraTab() {
         setCapturedImage(result.assets[0].uri);
       }
     } catch (error) {
-      Alert.alert('🚨 IMPORT FAILED', 'Unable to import image from gallery!');
+      Alert.alert('Error', 'Failed to pick image');
       console.error(error);
     }
   };
@@ -142,18 +103,6 @@ export default function CameraTab() {
 
     setIsAnalyzing(true);
     setAnalysisResult(null);
-    setScanProgress(0);
-
-    // Simulate progress for better UX
-    const progressInterval = setInterval(() => {
-      setScanProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + Math.random() * 15;
-      });
-    }, 200);
 
     try {
       const result = await DetectionService.analyzeImage(
@@ -161,165 +110,122 @@ export default function CameraTab() {
         selectedDetectionType,
         selectedCrop
       );
-      
-      clearInterval(progressInterval);
-      setScanProgress(100);
-      
-      setTimeout(() => {
-        setAnalysisResult(result);
-        setShowExplosion(true);
-        setTimeout(() => setShowExplosion(false), 1000);
-      }, 500);
+      setAnalysisResult(result);
     } catch (error: any) {
-      clearInterval(progressInterval);
-      Alert.alert('🚨 ANALYSIS FAILED', error.message || 'AI analysis failed. Try again!');
+      Alert.alert('Analysis Failed', error.message || 'Please try again');
       console.error(error);
     } finally {
       setIsAnalyzing(false);
-      setScanProgress(0);
     }
   };
 
   const resetCamera = () => {
     setCapturedImage(null);
     setAnalysisResult(null);
-    setScanProgress(0);
   };
 
   const getSeverityColor = (severity: string) => {
     return DetectionService.getSeverityColor(severity);
   };
 
-  const animatedScanFrameStyle = useAnimatedStyle(() => {
-    const scale = interpolate(
-      pulseAnimation.value,
-      [0, 0.5, 1],
-      [1, 1.05, 1]
-    );
-
-    const opacity = interpolate(
-      pulseAnimation.value,
-      [0, 0.5, 1],
-      [0.8, 1, 0.8]
-    );
-
-    return {
-      transform: [{ scale }],
-      opacity,
-    };
-  });
-
   if (capturedImage) {
     return (
       <SafeAreaView style={styles.container}>
-        <ScrollView style={styles.reviewContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.reviewContainer}>
           <View style={styles.imageContainer}>
             <Image source={{ uri: capturedImage }} style={styles.capturedImage} />
-            <LinearGradient
-              colors={['rgba(0, 0, 0, 0.8)', 'transparent', 'rgba(0, 0, 0, 0.8)']}
-              style={styles.imageOverlay}
-            />
             <TouchableOpacity style={styles.retakeButton} onPress={resetCamera}>
-              <Text style={styles.retakeButtonText}>🔄 RETAKE</Text>
+              <Text style={styles.retakeButtonText}>Retake</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.selectionContainer}>
-            <HolographicCard style={styles.selectionCard} intensity={70}>
-              <Text style={styles.selectionTitle}>🎯 DETECTION MODE</Text>
-              <View style={styles.typeSelector}>
-                {detectionTypes.map((type) => {
-                  const IconComponent = type.icon;
-                  return (
-                    <TouchableOpacity
-                      key={type.key}
-                      style={[
-                        styles.typeButton,
-                        selectedDetectionType === type.key && styles.typeButtonActive
-                      ]}
-                      onPress={() => setSelectedDetectionType(type.key)}
-                    >
-                      <IconComponent 
-                        size={20} 
-                        color={selectedDetectionType === type.key ? '#ffffff' : type.color} 
-                      />
-                      <Text style={[
-                        styles.typeButtonText,
-                        selectedDetectionType === type.key && styles.typeButtonTextActive
-                      ]}>
-                        {type.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Text style={styles.selectionTitle}>🌱 CROP TYPE</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cropSelector}>
-                {cropTypes.map((crop) => (
+            <Text style={styles.selectionTitle}>Detection Type</Text>
+            <View style={styles.typeSelector}>
+              {detectionTypes.map((type) => {
+                const IconComponent = type.icon;
+                return (
                   <TouchableOpacity
-                    key={crop.key}
+                    key={type.key}
                     style={[
-                      styles.cropButton,
-                      selectedCrop === crop.key && styles.cropButtonActive
+                      styles.typeButton,
+                      selectedDetectionType === type.key && styles.typeButtonActive
                     ]}
-                    onPress={() => setSelectedCrop(crop.key)}
+                    onPress={() => setSelectedDetectionType(type.key)}
                   >
+                    <IconComponent 
+                      size={20} 
+                      color={selectedDetectionType === type.key ? '#ffffff' : type.color} 
+                    />
                     <Text style={[
-                      styles.cropButtonText,
-                      selectedCrop === crop.key && styles.cropButtonTextActive
+                      styles.typeButtonText,
+                      selectedDetectionType === type.key && styles.typeButtonTextActive
                     ]}>
-                      {crop.label}
+                      {type.label}
                     </Text>
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </HolographicCard>
+                );
+              })}
+            </View>
+
+            <Text style={styles.selectionTitle}>Crop Type</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cropSelector}>
+              {cropTypes.map((crop) => (
+                <TouchableOpacity
+                  key={crop.key}
+                  style={[
+                    styles.cropButton,
+                    selectedCrop === crop.key && styles.cropButtonActive
+                  ]}
+                  onPress={() => setSelectedCrop(crop.key)}
+                >
+                  <Text style={[
+                    styles.cropButtonText,
+                    selectedCrop === crop.key && styles.cropButtonTextActive
+                  ]}>
+                    {crop.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
-          <View style={styles.analyzeContainer}>
-            <PulsingButton
-              title={isAnalyzing ? '🔍 AI ANALYZING...' : '⚡ UNLEASH AI'}
-              onPress={analyzeImage}
-              variant="primary"
-              size="large"
-              disabled={isAnalyzing}
-              style={styles.analyzeButton}
-              icon={isAnalyzing ? <ActivityIndicator size="small" color="#ffffff" /> : <Zap size={24} color="#ffffff" />}
-            />
-          </View>
-
-          {isAnalyzing && (
-            <ScanningOverlay isScanning={true} progress={scanProgress / 100} />
-          )}
+          <TouchableOpacity
+            style={[styles.analyzeButton, isAnalyzing && styles.analyzeButtonDisabled]}
+            onPress={analyzeImage}
+            disabled={isAnalyzing}
+          >
+            {isAnalyzing ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Zap size={20} color="#ffffff" />
+            )}
+            <Text style={styles.analyzeButtonText}>
+              {isAnalyzing ? 'Analyzing...' : 'Analyze Plant'}
+            </Text>
+          </TouchableOpacity>
 
           {analysisResult && (
             <View style={styles.resultContainer}>
-              <HolographicCard style={styles.resultCard} intensity={90}>
-                <View style={styles.resultHeader}>
-                  <Text style={styles.resultTitle}>🎉 AI ANALYSIS COMPLETE</Text>
-                  <View style={styles.resultBadge}>
-                    <Text style={styles.resultBadgeText}>SUCCESS</Text>
-                  </View>
-                </View>
+              <View style={styles.resultHeader}>
+                <CheckCircle size={24} color="#10b981" />
+                <Text style={styles.resultTitle}>Analysis Complete</Text>
+              </View>
 
-                <View style={styles.resultContent}>
-                  <Text style={styles.detectionName}>
-                    🔬 {analysisResult.result.name.toUpperCase()}
-                  </Text>
-                  <Text style={styles.scientificName}>
-                    📋 {analysisResult.result.scientific_name}
-                  </Text>
+              <View style={styles.resultCard}>
+                <View style={styles.resultInfo}>
+                  <Text style={styles.detectionName}>{analysisResult.result.name}</Text>
+                  <Text style={styles.scientificName}>{analysisResult.result.scientific_name}</Text>
                   
                   <View style={styles.statusRow}>
-                    <View style={styles.severityContainer}>
+                    <View style={styles.severityBadge}>
                       <View style={[styles.severityDot, { backgroundColor: getSeverityColor(analysisResult.result.severity) }]} />
                       <Text style={styles.severityText}>
-                        THREAT LEVEL: {analysisResult.result.severity.toUpperCase()}
+                        Severity: {analysisResult.result.severity}
                       </Text>
                     </View>
                     <Text style={styles.confidenceText}>
-                      🎯 {analysisResult.result.confidence}% ACCURACY
+                      Confidence: {analysisResult.result.confidence}%
                     </Text>
                   </View>
 
@@ -327,39 +233,31 @@ export default function CameraTab() {
 
                   {analysisResult.result.symptoms.length > 0 && (
                     <View style={styles.symptomsSection}>
-                      <Text style={styles.sectionTitle}>⚠️ SYMPTOMS DETECTED</Text>
+                      <Text style={styles.sectionTitle}>Symptoms</Text>
                       {analysisResult.result.symptoms.map((symptom: string, index: number) => (
-                        <Text key={index} style={styles.symptomText}>🔸 {symptom}</Text>
+                        <Text key={index} style={styles.symptomText}>• {symptom}</Text>
                       ))}
                     </View>
                   )}
 
                   {analysisResult.result.treatments.organic.length > 0 && (
                     <View style={styles.treatmentsSection}>
-                      <Text style={styles.sectionTitle}>🌿 ORGANIC SOLUTIONS</Text>
+                      <Text style={styles.sectionTitle}>Organic Treatments</Text>
                       {analysisResult.result.treatments.organic.map((treatment: any, index: number) => (
-                        <HolographicCard key={index} style={styles.treatmentCard} intensity={50}>
-                          <Text style={styles.treatmentName}>💊 {treatment.name}</Text>
-                          <Text style={styles.treatmentDetail}>📏 Dosage: {treatment.dosage}</Text>
-                          <Text style={styles.treatmentDetail}>⏰ Frequency: {treatment.frequency}</Text>
-                          <Text style={styles.treatmentSafety}>✅ Safety: {treatment.safety}</Text>
-                        </HolographicCard>
+                        <View key={index} style={styles.treatmentCard}>
+                          <Text style={styles.treatmentName}>{treatment.name}</Text>
+                          <Text style={styles.treatmentDetail}>Dosage: {treatment.dosage}</Text>
+                          <Text style={styles.treatmentDetail}>Frequency: {treatment.frequency}</Text>
+                          <Text style={styles.treatmentSafety}>Safety: {treatment.safety}</Text>
+                        </View>
                       ))}
                     </View>
                   )}
                 </View>
-              </HolographicCard>
+              </View>
             </View>
           )}
         </ScrollView>
-
-        <ParticleExplosion
-          trigger={showExplosion}
-          centerX={width / 2}
-          centerY={height / 2}
-          particleCount={40}
-          colors={['#00ff41', '#ffd700', '#00d4ff']}
-        />
       </SafeAreaView>
     );
   }
@@ -367,73 +265,35 @@ export default function CameraTab() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.cameraHeader}>
-        <HolographicCard style={styles.headerCard} intensity={80}>
-          <Text style={styles.headerTitle}>🚀 AI PLANT SCANNER</Text>
-          <Text style={styles.headerSubtitle}>POINT • SCAN • DETECT • TREAT</Text>
-        </HolographicCard>
+        <Text style={styles.headerTitle}>Plant Detection</Text>
+        <Text style={styles.headerSubtitle}>Point camera at affected plant area</Text>
       </View>
 
-      <View style={styles.cameraContainer}>
-        <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
-          {/* Futuristic Scanning Frame */}
-          <Animated.View style={[styles.scanFrame, animatedScanFrameStyle]}>
-            <LinearGradient
-              colors={['transparent', 'rgba(0, 255, 65, 0.3)', 'transparent']}
-              style={styles.scanFrameGradient}
-            />
-            <View style={styles.scanCorners}>
-              <View style={[styles.corner, styles.topLeft]} />
-              <View style={[styles.corner, styles.topRight]} />
-              <View style={[styles.corner, styles.bottomLeft]} />
-              <View style={[styles.corner, styles.bottomRight]} />
-            </View>
-            <View style={styles.centerCrosshair}>
-              <Crosshair size={32} color="#00ff41" />
-            </View>
-          </Animated.View>
-
+      <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
+        <View style={styles.cameraOverlay}>
+          <View style={styles.scanFrame} />
           <Text style={styles.scanInstructions}>
-            🎯 POSITION AFFECTED AREA IN CROSSHAIRS
+            Position the affected area within the frame
           </Text>
-        </CameraView>
-      </View>
+        </View>
+      </CameraView>
 
-      {/* Futuristic Controls */}
       <View style={styles.cameraControls}>
         <TouchableOpacity style={styles.controlButton} onPress={pickImage}>
-          <HolographicCard style={styles.controlCard} intensity={60}>
-            <Image
-              source={{ uri: 'https://images.pexels.com/photos/1407305/pexels-photo-1407305.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1' }}
-              style={styles.galleryPreview}
-            />
-          </HolographicCard>
+          <Image
+            source={{ uri: 'https://images.pexels.com/photos/1407305/pexels-photo-1407305.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1' }}
+            style={styles.galleryPreview}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
-          <LinearGradient
-            colors={['#00ff41', '#00cc33']}
-            style={styles.captureGradient}
-          >
-            <View style={styles.captureInner}>
-              <Scan size={32} color="#ffffff" />
-            </View>
-          </LinearGradient>
+          <View style={styles.captureButtonInner} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.controlButton} onPress={toggleCameraFacing}>
-          <HolographicCard style={styles.controlCard} intensity={60}>
-            <FlipHorizontal size={24} color="#00ff41" />
-          </HolographicCard>
+          <FlipHorizontal size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
-
-      <ParticleExplosion
-        trigger={showExplosion}
-        centerX={width / 2}
-        centerY={height / 2}
-        particleCount={30}
-        colors={['#00ff41', '#ffd700']}
-      />
     </SafeAreaView>
   );
 }
@@ -441,6 +301,7 @@ export default function CameraTab() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000000',
   },
   permissionContainer: {
     flex: 1,
@@ -448,164 +309,90 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
   },
-  permissionCard: {
-    width: '100%',
-  },
-  permissionContent: {
-    alignItems: 'center',
-  },
   permissionTitle: {
     fontSize: 24,
-    fontWeight: '900',
-    color: '#ffffff',
-    marginTop: 20,
-    marginBottom: 12,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginTop: 16,
+    marginBottom: 8,
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 255, 65, 0.5)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
   },
   permissionText: {
     fontSize: 16,
-    color: '#ffffff',
+    color: '#6b7280',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
-    opacity: 0.9,
   },
   permissionButton: {
-    minWidth: 200,
+    backgroundColor: '#16a34a',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  permissionButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   cameraHeader: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-  },
-  headerCard: {
-    alignItems: 'center',
+    backgroundColor: '#ffffff',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#ffffff',
-    textShadowColor: 'rgba(0, 255, 65, 0.8)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1f2937',
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: '#00ff41',
+    fontSize: 14,
+    color: '#6b7280',
     marginTop: 4,
-    fontWeight: '700',
-    letterSpacing: 2,
-  },
-  cameraContainer: {
-    flex: 1,
-    margin: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
   },
   camera: {
     flex: 1,
+  },
+  cameraOverlay: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 32,
   },
   scanFrame: {
-    width: 300,
-    height: 300,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  scanFrameGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 20,
+    width: 250,
+    height: 250,
     borderWidth: 2,
-    borderColor: '#00ff41',
-  },
-  scanCorners: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  corner: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderColor: '#00ff41',
-    borderWidth: 4,
-  },
-  topLeft: {
-    top: -2,
-    left: -2,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    borderTopLeftRadius: 20,
-  },
-  topRight: {
-    top: -2,
-    right: -2,
-    borderLeftWidth: 0,
-    borderBottomWidth: 0,
-    borderTopRightRadius: 20,
-  },
-  bottomLeft: {
-    bottom: -2,
-    left: -2,
-    borderRightWidth: 0,
-    borderTopWidth: 0,
-    borderBottomLeftRadius: 20,
-  },
-  bottomRight: {
-    bottom: -2,
-    right: -2,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderBottomRightRadius: 20,
-  },
-  centerCrosshair: {
-    position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: '#16a34a',
+    borderRadius: 12,
+    backgroundColor: 'transparent',
   },
   scanInstructions: {
-    position: 'absolute',
-    bottom: 100,
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     textAlign: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    marginTop: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#00ff41',
-    textShadowColor: 'rgba(0, 255, 65, 0.8)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 5,
   },
   cameraControls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingVertical: 30,
+    paddingHorizontal: 32,
+    paddingVertical: 24,
+    backgroundColor: '#000000',
   },
   controlButton: {
-    width: 60,
-    height: 60,
-  },
-  controlCard: {
-    width: '100%',
-    height: '100%',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   galleryPreview: {
     width: 50,
@@ -613,279 +400,234 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   captureButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    overflow: 'hidden',
-  },
-  captureGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#00ff41',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  captureInner: {
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  captureButtonInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#16a34a',
+  },
   reviewContainer: {
     flex: 1,
-    paddingBottom: 100,
+    backgroundColor: '#f9fafb',
   },
   imageContainer: {
     position: 'relative',
-    height: 300,
   },
   capturedImage: {
     width: '100%',
-    height: '100%',
-  },
-  imageOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    height: 300,
   },
   retakeButton: {
     position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    top: 16,
+    right: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#00ff41',
   },
   retakeButtonText: {
-    color: '#00ff41',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   selectionContainer: {
     padding: 20,
   },
-  selectionCard: {
-    marginTop: 0,
-  },
   selectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 16,
+    color: '#1f2937',
+    marginBottom: 12,
     marginTop: 16,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 255, 65, 0.5)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 5,
   },
   typeSelector: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   typeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    marginHorizontal: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
+    marginRight: 12,
   },
   typeButtonActive: {
-    backgroundColor: 'rgba(0, 255, 65, 0.3)',
-    borderColor: '#00ff41',
+    backgroundColor: '#16a34a',
+    borderColor: '#16a34a',
   },
   typeButtonText: {
     marginLeft: 8,
     fontSize: 14,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontWeight: '600',
+    color: '#4b5563',
   },
   typeButtonTextActive: {
     color: '#ffffff',
-    textShadowColor: 'rgba(0, 255, 65, 0.8)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 5,
   },
   cropSelector: {
     flexDirection: 'row',
   },
   cropButton: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingVertical: 8,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    marginRight: 12,
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
+    marginRight: 8,
   },
   cropButtonActive: {
-    backgroundColor: 'rgba(0, 255, 65, 0.3)',
-    borderColor: '#00ff41',
+    backgroundColor: '#16a34a',
+    borderColor: '#16a34a',
   },
   cropButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4b5563',
   },
   cropButtonTextActive: {
     color: '#ffffff',
-    textShadowColor: 'rgba(0, 255, 65, 0.8)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 5,
-  },
-  analyzeContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
   },
   analyzeButton: {
-    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#16a34a',
+    marginHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  analyzeButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  analyzeButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 8,
   },
   resultContainer: {
     margin: 20,
   },
-  resultCard: {
-    marginTop: 0,
-  },
   resultHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   resultTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#ffffff',
-    textShadowColor: 'rgba(0, 255, 65, 0.8)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-  },
-  resultBadge: {
-    backgroundColor: 'rgba(0, 255, 65, 0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#00ff41',
-  },
-  resultBadgeText: {
-    fontSize: 10,
-    color: '#00ff41',
+    fontSize: 20,
     fontWeight: '700',
-    letterSpacing: 1,
+    color: '#1f2937',
+    marginLeft: 8,
   },
-  resultContent: {
+  resultCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  resultInfo: {
     flex: 1,
   },
   detectionName: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#00ff41',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 255, 65, 0.5)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 4,
   },
   scientificName: {
     fontSize: 16,
-    color: '#ffffff',
+    color: '#6b7280',
     fontStyle: 'italic',
-    marginBottom: 20,
-    opacity: 0.8,
+    marginBottom: 16,
   },
   statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  severityContainer: {
+  severityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   severityDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
   },
   severityText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4b5563',
   },
   confidenceText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffd700',
-    letterSpacing: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4b5563',
   },
   description: {
     fontSize: 16,
-    color: '#ffffff',
+    color: '#4b5563',
     lineHeight: 24,
-    marginBottom: 24,
-    opacity: 0.9,
+    marginBottom: 20,
   },
   symptomsSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '900',
-    color: '#ffffff',
+    fontWeight: '700',
+    color: '#1f2937',
     marginBottom: 12,
-    textShadowColor: 'rgba(0, 255, 65, 0.5)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 5,
   },
   symptomText: {
     fontSize: 14,
-    color: '#ffffff',
-    lineHeight: 22,
-    marginBottom: 6,
-    opacity: 0.9,
+    color: '#4b5563',
+    lineHeight: 20,
+    marginBottom: 4,
   },
   treatmentsSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   treatmentCard: {
-    marginBottom: 12,
-  },
-  treatmentName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#00ff41',
+    backgroundColor: '#f9fafb',
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 8,
   },
-  treatmentDetail: {
+  treatmentName: {
     fontSize: 14,
-    color: '#ffffff',
+    fontWeight: '700',
+    color: '#1f2937',
     marginBottom: 4,
-    opacity: 0.9,
+  },
+  treatmentDetail: {
+    fontSize: 13,
+    color: '#4b5563',
+    marginBottom: 2,
   },
   treatmentSafety: {
-    fontSize: 14,
-    color: '#ffd700',
+    fontSize: 13,
+    color: '#059669',
     fontStyle: 'italic',
-    fontWeight: '600',
   },
 });
