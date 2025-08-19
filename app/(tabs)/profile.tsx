@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Bell, Shield, CircleHelp as HelpCircle, Settings, ChevronRight, Mail, Phone, MapPin, Award, LogOut, Edit3, Save, X } from 'lucide-react-native';
+import { User, Bell, Shield, CircleHelp as HelpCircle, Settings, ChevronRight, Mail, Phone, MapPin, Award, LogOut, CreditCard as Edit3, Save, X } from 'lucide-react-native';
 import { StorageService, UserProfile } from '@/services/StorageService';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Animatable from 'react-native-animatable';
