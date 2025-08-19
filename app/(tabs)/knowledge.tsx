@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Book, Search, Leaf, Bug, Shield, TriangleAlert as AlertTriangle, Info } from 'lucide-react-native';
+import { Book, Search, Leaf, Bug, Shield, TriangleAlert as AlertTriangle, Info, Bookmark, Share2 } from 'lucide-react-native';
 import localKnowledgeBaseJson from '@/data/detectionData.json';
+import * as Animatable from 'react-native-animatable';
 
 export default function KnowledgeTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'disease' | 'pest'>('all');
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const [bookmarkedItems, setBookmarkedItems] = useState<Set<string>>(new Set());
 
   const knowledgeBase = localKnowledgeBaseJson as any;
 
@@ -61,15 +63,39 @@ export default function KnowledgeTab() {
 
   const filteredEntries = getFilteredEntries();
 
+  const handleBookmark = (key: string) => {
+    const newBookmarks = new Set(bookmarkedItems);
+    if (newBookmarks.has(key)) {
+      newBookmarks.delete(key);
+    } else {
+      newBookmarks.add(key);
+    }
+    setBookmarkedItems(newBookmarks);
+  };
+
+  const handleShare = (key: string, entry: any) => {
+    Alert.alert(
+      'Share Knowledge',
+      `Share information about ${key.replace(/_/g, ' ')}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Share', onPress: () => {
+          // In a real app, this would use the Share API
+          Alert.alert('Shared!', 'Knowledge shared successfully');
+        }},
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <Animatable.View animation="fadeInDown" style={styles.header}>
         <Book size={24} color="#16a34a" />
         <Text style={styles.headerTitle}>Knowledge Base</Text>
-      </View>
+      </Animatable.View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
+      <Animatable.View animation="fadeInUp" delay={200} style={styles.searchContainer}>
         <View style={styles.searchBar}>
           <Search size={20} color="#6b7280" />
           <TextInput
@@ -80,10 +106,10 @@ export default function KnowledgeTab() {
             placeholderTextColor="#9ca3af"
           />
         </View>
-      </View>
+      </Animatable.View>
 
       {/* Category Filter */}
-      <View style={styles.categoryContainer}>
+      <Animatable.View animation="fadeInUp" delay={300} style={styles.categoryContainer}>
         {categories.map((category) => {
           const IconComponent = category.icon;
           return (
@@ -108,20 +134,25 @@ export default function KnowledgeTab() {
             </TouchableOpacity>
           );
         })}
-      </View>
+      </Animatable.View>
 
       <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
         {filteredEntries.length === 0 ? (
-          <View style={styles.emptyState}>
+          <Animatable.View animation="fadeIn" delay={400} style={styles.emptyState}>
             <Search size={48} color="#9ca3af" />
             <Text style={styles.emptyTitle}>No results found</Text>
             <Text style={styles.emptyText}>
               Try adjusting your search terms or category filter
             </Text>
-          </View>
+          </Animatable.View>
         ) : (
           filteredEntries.map(([key, entry]: [string, any], index) => (
-            <View key={key} style={styles.knowledgeCard}>
+            <Animatable.View 
+              key={key} 
+              animation="fadeInUp" 
+              delay={400 + (index * 100)}
+              style={styles.knowledgeCard}
+            >
               <TouchableOpacity
                 style={styles.cardHeader}
                 onPress={() => setExpandedItem(expandedItem === key ? null : key)}
@@ -135,6 +166,22 @@ export default function KnowledgeTab() {
                   <Text style={[styles.severityText, { color: getSeverityColor(entry.severity) }]}>
                     {entry.severity}
                   </Text>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleBookmark(key)}
+                  >
+                    <Bookmark 
+                      size={16} 
+                      color={bookmarkedItems.has(key) ? "#f59e0b" : "#9ca3af"}
+                      fill={bookmarkedItems.has(key) ? "#f59e0b" : "none"}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleShare(key, entry)}
+                  >
+                    <Share2 size={16} color="#6b7280" />
+                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
 
@@ -189,7 +236,7 @@ export default function KnowledgeTab() {
                   )}
                 </View>
               )}
-            </View>
+            </Animatable.View>
           ))
         )}
       </ScrollView>
@@ -329,6 +376,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
+  },
+  actionButton: {
+    padding: 4,
+    marginLeft: 8,
   },
   expandedContent: {
     paddingHorizontal: 16,

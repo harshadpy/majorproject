@@ -1,80 +1,112 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { History as HistoryIcon, Calendar, CircleAlert as AlertCircle, CircleCheck as CheckCircle, TrendingUp, Filter } from 'lucide-react-native';
+import { History as HistoryIcon, Calendar, CircleAlert as AlertCircle, CircleCheck as CheckCircle, TrendingUp, Filter, Trash2, RefreshCw } from 'lucide-react-native';
 import { DetectionService } from '@/services/DetectionService';
+import { StorageService, DetectionRecord } from '@/services/StorageService';
+import { useFocusEffect } from '@react-navigation/native';
+import * as Animatable from 'react-native-animatable';
 
 export default function HistoryTab() {
-  const [detections, setDetections] = useState<any[]>([]);
+  const [detections, setDetections] = useState<DetectionRecord[]>([]);
   const [filterType, setFilterType] = useState<'all' | 'disease' | 'pest'>('all');
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    loadDetectionHistory();
-  }, []);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadDetectionHistory = async () => {
-    setIsLoading(true);
     try {
-      const history = await DetectionService.getDetectionHistory();
+      const history = await StorageService.getDetections();
       setDetections(history);
     } catch (error) {
       console.error('Error loading history:', error);
+      Alert.alert('Error', 'Failed to load detection history');
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
   };
 
-  // Mock data for demonstration since getDetectionHistory returns empty array
-  const mockDetections = [
-    {
-      id: '1',
-      timestamp: Date.now() - 86400000, // 1 day ago
-      type: 'disease',
-      crop: 'tomato',
-      result: {
-        name: 'early blight',
-        scientific_name: 'Alternaria solani',
-        severity: 'Medium',
-        confidence: 85,
-        description: 'Early blight is a common fungal disease affecting tomatoes.',
-      },
-      image: 'https://images.pexels.com/photos/1459339/pexels-photo-1459339.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      id: '2',
-      timestamp: Date.now() - 172800000, // 2 days ago
-      type: 'pest',
-      crop: 'pepper',
-      result: {
-        name: 'aphids',
-        scientific_name: 'Aphidoidea',
-        severity: 'Low',
-        confidence: 92,
-        description: 'Small insects that feed on plant sap.',
-      },
-      image: 'https://images.pexels.com/photos/1407305/pexels-photo-1407305.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      id: '3',
-      timestamp: Date.now() - 259200000, // 3 days ago
-      type: 'disease',
-      crop: 'corn',
-      result: {
-        name: 'leaf rust',
-        scientific_name: 'Puccinia sorghi',
-        severity: 'High',
-        confidence: 78,
-        description: 'Fungal disease causing rust-colored pustules on leaves.',
-      },
-      image: 'https://images.pexels.com/photos/2518861/pexels-photo-2518861.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-  ];
+  // Refresh data when tab comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadDetectionHistory();
+    }, [])
+  );
 
-  const displayDetections = detections.length > 0 ? detections : mockDetections;
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadDetectionHistory();
+  };
+
+  const handleDeleteDetection = async (id: string) => {
+    Alert.alert(
+      'Delete Detection',
+      'Are you sure you want to delete this detection record?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await StorageService.deleteDetection(id);
+              await loadDetectionHistory();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete detection');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearAllHistory = async () => {
+    Alert.alert(
+      'Clear All History',
+      'This will permanently delete all detection records. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await StorageService.clearAllData();
+              await loadDetectionHistory();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to clear history');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const filteredDetections = filterType === 'all' 
-    ? displayDetections 
-    : displayDetections.filter(detection => detection.type === filterType);
+    ? detections 
+    : detections.filter(detection => detection.type === filterType);
+
+  const getStats = () => {
+    const total = detections.length;
+    const diseases = detections.filter(d => d.type === 'disease').length;
+    const pests = detections.filter(d => d.type === 'pest').length;
+    const highSeverity = detections.filter(d => d.result.severity.toLowerCase() === 'high').length;
+
+    return { total, diseases, pests, highSeverity };
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <RefreshCw size={32} color="#16a34a" />
+          <Text style={styles.loadingText}>Loading detection history...</Text>
+        </View>
+      </SafeAreaView>
+    );
+    }
+
+  const stats = getStats();
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -97,26 +129,18 @@ export default function HistoryTab() {
     return <AlertCircle size={16} color={color} />;
   };
 
-  const getStats = () => {
-    const total = displayDetections.length;
-    const diseases = displayDetections.filter(d => d.type === 'disease').length;
-    const pests = displayDetections.filter(d => d.type === 'pest').length;
-    const highSeverity = displayDetections.filter(d => d.result.severity.toLowerCase() === 'high').length;
-
-    return { total, diseases, pests, highSeverity };
-  };
-
-  const stats = getStats();
-
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <Animatable.View animation="fadeInDown" style={styles.header}>
         <HistoryIcon size={24} color="#16a34a" />
         <Text style={styles.headerTitle}>Detection History</Text>
-      </View>
+        <TouchableOpacity onPress={onRefresh}>
+          <RefreshCw size={20} color="#16a34a" />
+        </TouchableOpacity>
+      </Animatable.View>
 
       {/* Stats Overview */}
-      <View style={styles.statsContainer}>
+      <Animatable.View animation="fadeInUp" delay={200} style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{stats.total}</Text>
           <Text style={styles.statLabel}>Total Scans</Text>
@@ -133,10 +157,10 @@ export default function HistoryTab() {
           <Text style={styles.statValue}>{stats.highSeverity}</Text>
           <Text style={styles.statLabel}>Critical</Text>
         </View>
-      </View>
+      </Animatable.View>
 
       {/* Filter Buttons */}
-      <View style={styles.filterContainer}>
+      <Animatable.View animation="fadeInUp" delay={300} style={styles.filterContainer}>
         <TouchableOpacity
           style={[styles.filterButton, filterType === 'all' && styles.filterButtonActive]}
           onPress={() => setFilterType('all')}
@@ -161,20 +185,45 @@ export default function HistoryTab() {
             Pests
           </Text>
         </TouchableOpacity>
-      </View>
+        
+        {detections.length > 0 && (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={handleClearAllHistory}
+          >
+            <Trash2 size={16} color="#dc2626" />
+          </TouchableOpacity>
+        )}
+      </Animatable.View>
 
-      <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.listContainer} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {filteredDetections.length === 0 ? (
-          <View style={styles.emptyState}>
+          <Animatable.View animation="fadeIn" delay={400} style={styles.emptyState}>
             <HistoryIcon size={48} color="#9ca3af" />
-            <Text style={styles.emptyTitle}>No detections yet</Text>
-            <Text style={styles.emptyText}>
-              Start scanning your plants to build your detection history
+            <Text style={styles.emptyTitle}>
+              {filterType === 'all' ? 'No detections yet' : `No ${filterType}s detected`}
             </Text>
-          </View>
+            <Text style={styles.emptyText}>
+              {filterType === 'all' 
+                ? 'Start scanning your plants to build your detection history'
+                : `Try scanning for ${filterType}s or change your filter`
+              }
+            </Text>
+          </Animatable.View>
         ) : (
           filteredDetections.map((detection, index) => (
-            <View key={detection.id || index} style={styles.detectionCard}>
+            <Animatable.View 
+              key={detection.id || index} 
+              animation="fadeInUp" 
+              delay={400 + (index * 100)}
+              style={styles.detectionCard}
+            >
               <Image source={{ uri: detection.image }} style={styles.detectionImage} />
               
               <View style={styles.detectionInfo}>
@@ -205,8 +254,15 @@ export default function HistoryTab() {
                 <Text style={styles.detectionDescription} numberOfLines={2}>
                   {detection.result.description}
                 </Text>
+                
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDeleteDetection(detection.id)}
+                >
+                  <Trash2 size={16} color="#dc2626" />
+                </TouchableOpacity>
               </View>
-            </View>
+            </Animatable.View>
           ))
         )}
       </ScrollView>
@@ -222,6 +278,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: '#ffffff',
@@ -259,6 +316,8 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: '#ffffff',
@@ -280,6 +339,21 @@ const styles = StyleSheet.create({
   },
   filterTextActive: {
     color: '#ffffff',
+  },
+  clearButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#fef2f2',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginTop: 12,
   },
   listContainer: {
     flex: 1,
@@ -323,6 +397,7 @@ const styles = StyleSheet.create({
   },
   detectionInfo: {
     flex: 1,
+    position: 'relative',
     padding: 16,
   },
   detectionHeader: {
@@ -378,5 +453,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#4b5563',
     lineHeight: 18,
+    marginBottom: 8,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: '#fef2f2',
   },
 });
