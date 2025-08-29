@@ -2,14 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Camera as CameraIcon, FlipHorizontal, Zap, Bug, Leaf, ArrowRight, CircleCheck as CheckCircle } from 'lucide-react-native';
+import { Camera as CameraIcon, FlipHorizontal, Zap, Bug, Leaf, ArrowRight, CheckCircle, ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { DetectionService } from '@/services/DetectionService';
+import { useTheme } from '@/hooks/useTheme';
 
 type DetectionType = 'disease' | 'pest';
 type CropType = 'tomato' | 'pepper' | 'corn' | 'wheat' | 'other';
 
 export default function CameraTab() {
+  const { colors, isDark } = useTheme();
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -20,8 +22,8 @@ export default function CameraTab() {
   const cameraRef = useRef<CameraView>(null);
 
   const detectionTypes = [
-    { key: 'disease' as DetectionType, label: 'Disease', icon: Leaf, color: '#dc2626' },
-    { key: 'pest' as DetectionType, label: 'Pest', icon: Bug, color: '#ea580c' },
+    { key: 'disease' as DetectionType, label: 'Disease', icon: Leaf, color: colors.primary },
+    { key: 'pest' as DetectionType, label: 'Pest', icon: Bug, color: colors.accent },
   ];
 
   const cropTypes = [
@@ -47,15 +49,15 @@ export default function CameraTab() {
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.permissionContainer}>
-          <CameraIcon size={64} color="#6b7280" />
-          <Text style={styles.permissionTitle}>Camera Permission Required</Text>
-          <Text style={styles.permissionText}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.permissionContainer, { backgroundColor: colors.background }]}>
+          <CameraIcon size={64} color={colors.textMuted} />
+          <Text style={[styles.permissionTitle, { color: colors.text }]}>Camera Permission Required</Text>
+          <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
             We need access to your camera to detect plant diseases and pests
           </Text>
-          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+          <TouchableOpacity style={[styles.permissionButton, { backgroundColor: colors.primary }]} onPress={requestPermission}>
+            <Text style={[styles.permissionButtonText, { color: colors.background }]}>Grant Permission</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -130,17 +132,17 @@ export default function CameraTab() {
 
   if (capturedImage) {
     return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView style={styles.reviewContainer}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <ScrollView style={[styles.reviewContainer, { backgroundColor: colors.background }]}>
           <View style={styles.imageContainer}>
             <Image source={{ uri: capturedImage }} style={styles.capturedImage} />
-            <TouchableOpacity style={styles.retakeButton} onPress={resetCamera}>
-              <Text style={styles.retakeButtonText}>Retake</Text>
+            <TouchableOpacity style={[styles.retakeButton, { backgroundColor: colors.card }]} onPress={resetCamera}>
+              <Text style={[styles.retakeButtonText, { color: colors.text }]}>Retake</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.selectionContainer}>
-            <Text style={styles.selectionTitle}>Detection Type</Text>
+          <View style={[styles.selectionContainer, { backgroundColor: colors.background }]}>
+            <Text style={[styles.selectionTitle, { color: colors.text }]}>Detection Type</Text>
             <View style={styles.typeSelector}>
               {detectionTypes.map((type) => {
                 const IconComponent = type.icon;
@@ -148,18 +150,20 @@ export default function CameraTab() {
                   <TouchableOpacity
                     key={type.key}
                     style={[
-                      styles.typeButton,
-                      selectedDetectionType === type.key && styles.typeButtonActive
+                      styles.typeButton, 
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                      selectedDetectionType === type.key && { backgroundColor: type.color }
                     ]}
                     onPress={() => setSelectedDetectionType(type.key)}
                   >
                     <IconComponent 
                       size={20} 
-                      color={selectedDetectionType === type.key ? '#ffffff' : type.color} 
+                      color={selectedDetectionType === type.key ? colors.background : type.color} 
                     />
                     <Text style={[
-                      styles.typeButtonText,
-                      selectedDetectionType === type.key && styles.typeButtonTextActive
+                      styles.typeButtonText, 
+                      { color: colors.text },
+                      selectedDetectionType === type.key && { color: colors.background }
                     ]}>
                       {type.label}
                     </Text>
@@ -168,20 +172,22 @@ export default function CameraTab() {
               })}
             </View>
 
-            <Text style={styles.selectionTitle}>Crop Type</Text>
+            <Text style={[styles.selectionTitle, { color: colors.text }]}>Crop Type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cropSelector}>
               {cropTypes.map((crop) => (
                 <TouchableOpacity
                   key={crop.key}
                   style={[
-                    styles.cropButton,
-                    selectedCrop === crop.key && styles.cropButtonActive
+                    styles.cropButton, 
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                    selectedCrop === crop.key && { backgroundColor: colors.primary }
                   ]}
                   onPress={() => setSelectedCrop(crop.key)}
                 >
                   <Text style={[
-                    styles.cropButtonText,
-                    selectedCrop === crop.key && styles.cropButtonTextActive
+                    styles.cropButtonText, 
+                    { color: colors.text },
+                    selectedCrop === crop.key && { color: colors.background }
                   ]}>
                     {crop.label}
                   </Text>
@@ -191,64 +197,68 @@ export default function CameraTab() {
           </View>
 
           <TouchableOpacity
-            style={[styles.analyzeButton, isAnalyzing && styles.analyzeButtonDisabled]}
+            style={[
+              styles.analyzeButton, 
+              { backgroundColor: colors.primary },
+              isAnalyzing && { backgroundColor: colors.textMuted }
+            ]}
             onPress={analyzeImage}
             disabled={isAnalyzing}
           >
             {isAnalyzing ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <ActivityIndicator size="small" color={colors.background} />
             ) : (
-              <Zap size={20} color="#ffffff" />
+              <Zap size={20} color={colors.background} />
             )}
-            <Text style={styles.analyzeButtonText}>
+            <Text style={[styles.analyzeButtonText, { color: colors.background }]}>
               {isAnalyzing ? 'Analyzing...' : 'Analyze Plant'}
             </Text>
           </TouchableOpacity>
 
           {analysisResult && (
-            <View style={styles.resultContainer}>
+            <View style={[styles.resultContainer, { backgroundColor: colors.background }]}>
               <View style={styles.resultHeader}>
-                <CheckCircle size={24} color="#10b981" />
-                <Text style={styles.resultTitle}>Analysis Complete</Text>
+                <CheckCircle size={24} color={colors.primary} />
+                <Text style={[styles.resultTitle, { color: colors.text }]}>Analysis Complete</Text>
               </View>
 
-              <View style={styles.resultCard}>
+              <View style={[styles.resultCard, { backgroundColor: colors.card }]}>
                 <View style={styles.resultInfo}>
-                  <Text style={styles.detectionName}>{analysisResult.result.name}</Text>
-                  <Text style={styles.scientificName}>{analysisResult.result.scientific_name}</Text>
+                  <Text style={[styles.detectionName, { color: colors.text }]}>{analysisResult.result.name}</Text>
+                  <Text style={[styles.scientificName, { color: colors.textSecondary }]}>{analysisResult.result.scientific_name}</Text>
                   
                   <View style={styles.statusRow}>
                     <View style={styles.severityBadge}>
                       <View style={[styles.severityDot, { backgroundColor: getSeverityColor(analysisResult.result.severity) }]} />
-                      <Text style={styles.severityText}>
+                      <Text style={[styles.severityText, { color: colors.text }]}>
                         Severity: {analysisResult.result.severity}
                       </Text>
                     </View>
-                    <Text style={styles.confidenceText}>
+                    <Text style={[styles.confidenceText, { color: colors.text }]}>
                       Confidence: {analysisResult.result.confidence}%
                     </Text>
                   </View>
 
-                  <Text style={styles.description}>{analysisResult.result.description}</Text>
+                  <Text style={[styles.description, { color: colors.textSecondary }]}>{analysisResult.result.description}</Text>
 
                   {analysisResult.result.symptoms.length > 0 && (
                     <View style={styles.symptomsSection}>
-                      <Text style={styles.sectionTitle}>Symptoms</Text>
+                      <Text style={[styles.sectionTitle, { color: colors.text }]}>Symptoms</Text>
                       {analysisResult.result.symptoms.map((symptom: string, index: number) => (
-                        <Text key={index} style={styles.symptomText}>• {symptom}</Text>
+                        <Text key={index} style={[styles.symptomText, { color: colors.textSecondary }]}>• {symptom}</Text>
                       ))}
                     </View>
                   )}
 
                   {analysisResult.result.treatments.organic.length > 0 && (
                     <View style={styles.treatmentsSection}>
-                      <Text style={styles.sectionTitle}>Organic Treatments</Text>
+                      <Text style={[styles.sectionTitle, { color: colors.text }]}>Organic Treatments</Text>
                       {analysisResult.result.treatments.organic.map((treatment: any, index: number) => (
-                        <View key={index} style={styles.treatmentCard}>
-                          <Text style={styles.treatmentName}>{treatment.name}</Text>
-                          <Text style={styles.treatmentDetail}>Dosage: {treatment.dosage}</Text>
-                          <Text style={styles.treatmentDetail}>Frequency: {treatment.frequency}</Text>
-                          <Text style={styles.treatmentSafety}>Safety: {treatment.safety}</Text>
+                        <View key={index} style={[styles.treatmentCard, { backgroundColor: colors.surface }]}>
+                          <Text style={[styles.treatmentName, { color: colors.text }]}>{treatment.name}</Text>
+                          <Text style={[styles.treatmentDetail, { color: colors.textSecondary }]}>Dosage: {treatment.dosage}</Text>
+                          <Text style={[styles.treatmentDetail, { color: colors.textSecondary }]}>Frequency: {treatment.frequency}</Text>
+                          <Text style={[styles.treatmentSafety, { color: colors.primary }]}>Safety: {treatment.safety}</Text>
                         </View>
                       ))}
                     </View>
@@ -263,35 +273,32 @@ export default function CameraTab() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.cameraHeader}>
-        <Text style={styles.headerTitle}>Plant Detection</Text>
-        <Text style={styles.headerSubtitle}>Point camera at affected plant area</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.cameraHeader, { backgroundColor: colors.card }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Plant Detection</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Point camera at affected plant area</Text>
       </View>
 
       <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
         <View style={styles.cameraOverlay}>
-          <View style={styles.scanFrame} />
-          <Text style={styles.scanInstructions}>
+          <View style={[styles.scanFrame, { borderColor: colors.primary }]} />
+          <Text style={[styles.scanInstructions, { color: colors.text }]}>
             Position the affected area within the frame
           </Text>
         </View>
       </CameraView>
 
       <View style={styles.cameraControls}>
-        <TouchableOpacity style={styles.controlButton} onPress={pickImage}>
-          <Image
-            source={{ uri: 'https://images.pexels.com/photos/1407305/pexels-photo-1407305.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1' }}
-            style={styles.galleryPreview}
-          />
+        <TouchableOpacity style={[styles.controlButton, { backgroundColor: colors.card }]} onPress={pickImage}>
+          <ImageIcon size={24} color={colors.text} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
-          <View style={styles.captureButtonInner} />
+        <TouchableOpacity style={[styles.captureButton, { backgroundColor: colors.primary }]} onPress={takePicture}>
+          <View style={[styles.captureButtonInner, { backgroundColor: colors.background }]} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.controlButton} onPress={toggleCameraFacing}>
-          <FlipHorizontal size={24} color="#ffffff" />
+        <TouchableOpacity style={[styles.controlButton, { backgroundColor: colors.card }]} onPress={toggleCameraFacing}>
+          <FlipHorizontal size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -301,7 +308,6 @@ export default function CameraTab() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
   },
   permissionContainer: {
     flex: 1,
@@ -311,44 +317,39 @@ const styles = StyleSheet.create({
   },
   permissionTitle: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontFamily: 'SpaceGrotesk-Bold',
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
   },
   permissionText: {
     fontSize: 16,
-    color: '#6b7280',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
+    fontFamily: 'Inter-Regular',
   },
   permissionButton: {
-    backgroundColor: '#16a34a',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 25,
+    borderRadius: 30,
   },
   permissionButtonText: {
-    color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'SpaceGrotesk-SemiBold',
   },
   cameraHeader: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontFamily: 'SpaceGrotesk-Bold',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
     marginTop: 4,
+    fontFamily: 'Inter-Regular',
   },
   camera: {
     flex: 1,
@@ -363,14 +364,12 @@ const styles = StyleSheet.create({
     width: 250,
     height: 250,
     borderWidth: 2,
-    borderColor: '#16a34a',
     borderRadius: 12,
     backgroundColor: 'transparent',
   },
   scanInstructions: {
-    color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'SpaceGrotesk-SemiBold',
     textAlign: 'center',
     marginTop: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -392,7 +391,6 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   galleryPreview: {
     width: 50,
@@ -403,7 +401,6 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -411,11 +408,9 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#16a34a',
   },
   reviewContainer: {
     flex: 1,
-    backgroundColor: '#f9fafb',
   },
   imageContainer: {
     position: 'relative',
@@ -428,23 +423,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
   retakeButtonText: {
-    color: '#ffffff',
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'SpaceGrotesk-SemiBold',
   },
   selectionContainer: {
     padding: 20,
   },
   selectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontFamily: 'SpaceGrotesk-Bold',
     marginBottom: 12,
     marginTop: 16,
   },
@@ -459,22 +451,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
     marginRight: 12,
-  },
-  typeButtonActive: {
-    backgroundColor: '#16a34a',
-    borderColor: '#16a34a',
   },
   typeButtonText: {
     marginLeft: 8,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#4b5563',
-  },
-  typeButtonTextActive: {
-    color: '#ffffff',
+    fontFamily: 'SpaceGrotesk-SemiBold',
   },
   cropSelector: {
     flexDirection: 'row',
@@ -484,39 +466,24 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
     marginRight: 8,
-  },
-  cropButtonActive: {
-    backgroundColor: '#16a34a',
-    borderColor: '#16a34a',
   },
   cropButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#4b5563',
-  },
-  cropButtonTextActive: {
-    color: '#ffffff',
+    fontFamily: 'SpaceGrotesk-SemiBold',
   },
   analyzeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#16a34a',
     marginHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 12,
     marginBottom: 20,
   },
-  analyzeButtonDisabled: {
-    backgroundColor: '#9ca3af',
-  },
   analyzeButtonText: {
-    color: '#ffffff',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'SpaceGrotesk-Bold',
     marginLeft: 8,
   },
   resultContainer: {
@@ -529,12 +496,10 @@ const styles = StyleSheet.create({
   },
   resultTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontFamily: 'SpaceGrotesk-Bold',
     marginLeft: 8,
   },
   resultCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 20,
     shadowColor: '#000',
@@ -548,15 +513,14 @@ const styles = StyleSheet.create({
   },
   detectionName: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontFamily: 'SpaceGrotesk-Bold',
     marginBottom: 4,
   },
   scientificName: {
     fontSize: 16,
-    color: '#6b7280',
     fontStyle: 'italic',
     marginBottom: 16,
+    fontFamily: 'Inter-Regular',
   },
   statusRow: {
     flexDirection: 'row',
@@ -576,58 +540,53 @@ const styles = StyleSheet.create({
   },
   severityText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#4b5563',
+    fontFamily: 'SpaceGrotesk-SemiBold',
   },
   confidenceText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#4b5563',
+    fontFamily: 'SpaceGrotesk-SemiBold',
   },
   description: {
     fontSize: 16,
-    color: '#4b5563',
     lineHeight: 24,
     marginBottom: 20,
+    fontFamily: 'Inter-Regular',
   },
   symptomsSection: {
     marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontFamily: 'SpaceGrotesk-Bold',
     marginBottom: 12,
   },
   symptomText: {
     fontSize: 14,
-    color: '#4b5563',
     lineHeight: 20,
     marginBottom: 4,
+    fontFamily: 'Inter-Regular',
   },
   treatmentsSection: {
     marginBottom: 20,
   },
   treatmentCard: {
-    backgroundColor: '#f9fafb',
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
   },
   treatmentName: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontFamily: 'SpaceGrotesk-Bold',
     marginBottom: 4,
   },
   treatmentDetail: {
     fontSize: 13,
-    color: '#4b5563',
     marginBottom: 2,
+    fontFamily: 'Inter-Regular',
   },
   treatmentSafety: {
     fontSize: 13,
-    color: '#059669',
     fontStyle: 'italic',
+    fontFamily: 'Inter-Regular',
   },
 });

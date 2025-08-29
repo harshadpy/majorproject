@@ -1,23 +1,27 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Camera, History, Book, User } from 'lucide-react-native';
+import { Home, Camera, History, BookOpen, Settings } from 'lucide-react-native';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function TabLayout() {
+  const { colors } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopColor: '#e5e7eb',
+          backgroundColor: colors.tabBarBackground,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
           height: 80,
           paddingBottom: 20,
           paddingTop: 10,
         },
-        tabBarActiveTintColor: '#16a34a',
-        tabBarInactiveTintColor: '#6b7280',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
+          fontFamily: 'Inter-SemiBold',
         },
       }}>
       <Tabs.Screen
@@ -32,7 +36,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="camera"
         options={{
-          title: 'Detection',
+          title: 'Detect',
           tabBarIcon: ({ size, color }) => (
             <Camera size={size} color={color} />
           ),
@@ -50,18 +54,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="knowledge"
         options={{
-          title: 'Knowledge',
+          title: 'Learn',
           tabBarIcon: ({ size, color }) => (
-            <Book size={size} color={color} />
+            <BookOpen size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: 'Settings',
           tabBarIcon: ({ size, color }) => (
-            <User size={size} color={color} />
+            <Settings size={size} color={color} />
           ),
         }}
       />
