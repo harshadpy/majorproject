@@ -1,151 +1,25 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Bell, Shield, CircleHelp as HelpCircle, Settings, ChevronRight, Mail, Phone, MapPin, Award, LogOut, CreditCard as Edit3, Save, X } from 'lucide-react-native';
-import { StorageService, UserProfile } from '@/services/StorageService';
-import { useFocusEffect } from '@react-navigation/native';
-import * as Animatable from 'react-native-animatable';
+import { User, Bell, Shield, CircleHelp as HelpCircle, Settings, ChevronRight, Mail, Phone, MapPin, Award, LogOut } from 'lucide-react-native';
 
 export default function ProfileTab() {
-  const [profile, setProfile] = React.useState<UserProfile | null>(null);
-  const [stats, setStats] = React.useState({
-    totalScans: 0,
-    diseasesDetected: 0,
-    pestsDetected: 0,
-    criticalIssues: 0,
-  });
-  const [editModalVisible, setEditModalVisible] = React.useState(false);
-  const [editedProfile, setEditedProfile] = React.useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-
-  const loadData = async () => {
-    try {
-      const [profileData, statsData] = await Promise.all([
-        StorageService.getProfile(),
-        StorageService.getStats()
-      ]);
-      setProfile(profileData);
-      setStats({
-        totalScans: statsData.totalScans,
-        diseasesDetected: statsData.diseasesDetected,
-        pestsDetected: statsData.pestsDetected,
-        criticalIssues: statsData.criticalIssues,
-      });
-    } catch (error) {
-      console.error('Error loading profile data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useFocusEffect(
-    React.useCallback(() => {
-      loadData();
-    }, [])
-  );
-
-  const handleEditProfile = () => {
-    if (profile) {
-      setEditedProfile({ ...profile });
-      setEditModalVisible(true);
-    }
-  };
-
-  const handleSaveProfile = async () => {
-    if (editedProfile) {
-      try {
-        await StorageService.saveProfile(editedProfile);
-        setProfile(editedProfile);
-        setEditModalVisible(false);
-        Alert.alert('Success', 'Profile updated successfully');
-      } catch (error) {
-        Alert.alert('Error', 'Failed to update profile');
-      }
-    }
-  };
-
-  const handlePreferenceChange = async (key: keyof UserProfile['preferences'], value: any) => {
-    if (profile) {
-      const updatedProfile = {
-        ...profile,
-        preferences: {
-          ...profile.preferences,
-          [key]: value,
-        },
-      };
-      try {
-        await StorageService.saveProfile(updatedProfile);
-        setProfile(updatedProfile);
-      } catch (error) {
-        Alert.alert('Error', 'Failed to update preferences');
-      }
-    }
-  };
-
-  const handleLogout = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Signed Out', 'You have been signed out successfully');
-          }
-        },
-      ]
-    );
-  };
-
-  const handleClearData = () => {
-    Alert.alert(
-      'Clear All Data',
-      'This will permanently delete all your detection history and reset your stats. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Clear All', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await StorageService.clearAllData();
-              await loadData();
-              Alert.alert('Success', 'All data cleared successfully');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to clear data');
-            }
-          }
-        },
-      ]
-    );
-  };
-
-  if (isLoading || !profile) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <User size={32} color="#16a34a" />
-          <Text style={styles.loadingText}>Loading profile...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
+  const [autoDetectionEnabled, setAutoDetectionEnabled] = React.useState(false);
 
   const profileStats = [
-    { label: 'Plants Scanned', value: stats.totalScans.toString(), icon: Award, color: '#16a34a' },
-    { label: 'Issues Detected', value: (stats.diseasesDetected + stats.pestsDetected).toString(), icon: Shield, color: '#ea580c' },
-    { label: 'Critical Issues', value: stats.criticalIssues.toString(), icon: Award, color: '#ef4444' },
+    { label: 'Plants Scanned', value: '127', icon: Award, color: '#16a34a' },
+    { label: 'Issues Detected', value: '23', icon: Shield, color: '#ea580c' },
+    { label: 'Successful Treatments', value: '19', icon: Award, color: '#10b981' },
   ];
 
   const menuItems = [
     {
       section: 'Account',
       items: [
-        { title: 'Edit Profile', icon: User, onPress: handleEditProfile },
-        { title: 'Contact Information', icon: Mail, onPress: () => Alert.alert('Contact Info', 'Contact information management coming soon!') },
-        { title: 'Farm Location', icon: MapPin, onPress: () => Alert.alert('Farm Location', 'Location management coming soon!') },
+        { title: 'Edit Profile', icon: User, onPress: () => {} },
+        { title: 'Contact Information', icon: Mail, onPress: () => {} },
+        { title: 'Farm Location', icon: MapPin, onPress: () => {} },
       ]
     },
     {
@@ -156,10 +30,10 @@ export default function ProfileTab() {
           icon: Bell, 
           rightComponent: (
             <Switch
-              value={profile.preferences.notifications}
-              onValueChange={(value) => handlePreferenceChange('notifications', value)}
+              value={notificationsEnabled}
+              onValueChange={setNotificationsEnabled}
               trackColor={{ false: '#d1d5db', true: '#16a34a' }}
-              thumbColor={profile.preferences.notifications ? '#ffffff' : '#f4f3f4'}
+              thumbColor={notificationsEnabled ? '#ffffff' : '#f4f3f4'}
             />
           )
         },
@@ -168,10 +42,10 @@ export default function ProfileTab() {
           icon: Settings, 
           rightComponent: (
             <Switch
-              value={profile.preferences.autoDetection}
-              onValueChange={(value) => handlePreferenceChange('autoDetection', value)}
+              value={autoDetectionEnabled}
+              onValueChange={setAutoDetectionEnabled}
               trackColor={{ false: '#d1d5db', true: '#16a34a' }}
-              thumbColor={profile.preferences.autoDetection ? '#ffffff' : '#f4f3f4'}
+              thumbColor={autoDetectionEnabled ? '#ffffff' : '#f4f3f4'}
             />
           )
         },
@@ -180,9 +54,9 @@ export default function ProfileTab() {
     {
       section: 'Support',
       items: [
-        { title: 'Help Center', icon: HelpCircle, onPress: () => Alert.alert('Help Center', 'Help documentation coming soon!') },
-        { title: 'Privacy Policy', icon: Shield, onPress: () => Alert.alert('Privacy Policy', 'Privacy policy coming soon!') },
-        { title: 'Clear All Data', icon: Settings, onPress: handleClearData },
+        { title: 'Help Center', icon: HelpCircle, onPress: () => {} },
+        { title: 'Privacy Policy', icon: Shield, onPress: () => {} },
+        { title: 'Terms of Service', icon: Settings, onPress: () => {} },
       ]
     }
   ];
@@ -191,23 +65,17 @@ export default function ProfileTab() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
-        <Animatable.View animation="fadeInDown" style={styles.profileHeader}>
+        <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>
-              {profile.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-            </Text>
+            <Text style={styles.avatarText}>FJ</Text>
           </View>
-          <Text style={styles.profileName}>{profile.name}</Text>
-          <Text style={styles.profileEmail}>{profile.email}</Text>
-          <Text style={styles.profileLocation}>📍 {profile.location}</Text>
-          <TouchableOpacity style={styles.editProfileButton} onPress={handleEditProfile}>
-            <Edit3 size={16} color="#16a34a" />
-            <Text style={styles.editProfileText}>Edit Profile</Text>
-          </TouchableOpacity>
-        </Animatable.View>
+          <Text style={styles.profileName}>Farmer John</Text>
+          <Text style={styles.profileEmail}>john.farmer@email.com</Text>
+          <Text style={styles.profileLocation}>📍 Green Valley Farm, CA</Text>
+        </View>
 
         {/* Stats */}
-        <Animatable.View animation="fadeInUp" delay={200} style={styles.statsContainer}>
+        <View style={styles.statsContainer}>
           {profileStats.map((stat, index) => {
             const IconComponent = stat.icon;
             return (
@@ -220,16 +88,11 @@ export default function ProfileTab() {
               </View>
             );
           })}
-        </Animatable.View>
+        </View>
 
         {/* Menu Sections */}
         {menuItems.map((section, sectionIndex) => (
-          <Animatable.View 
-            key={sectionIndex} 
-            animation="fadeInUp" 
-            delay={300 + (sectionIndex * 100)}
-            style={styles.menuSection}
-          >
+          <View key={sectionIndex} style={styles.menuSection}>
             <Text style={styles.sectionTitle}>{section.section}</Text>
             <View style={styles.menuContainer}>
               {section.items.map((item, itemIndex) => {
@@ -256,114 +119,23 @@ export default function ProfileTab() {
                 );
               })}
             </View>
-          </Animatable.View>
+          </View>
         ))}
 
         {/* Logout Button */}
-        <Animatable.View animation="fadeInUp" delay={600} style={styles.logoutSection}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <View style={styles.logoutSection}>
+          <TouchableOpacity style={styles.logoutButton}>
             <LogOut size={20} color="#dc2626" />
             <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
-        </Animatable.View>
+        </View>
 
         {/* App Version */}
-        <Animatable.View animation="fadeIn" delay={700} style={styles.versionContainer}>
+        <View style={styles.versionContainer}>
           <Text style={styles.versionText}>Plant Detective v1.0.0</Text>
           <Text style={styles.versionSubtext}>Built for farmers, by farmers</Text>
-        </Animatable.View>
+        </View>
       </ScrollView>
-
-      {/* Edit Profile Modal */}
-      <Modal
-        visible={editModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-              <X size={24} color="#6b7280" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Edit Profile</Text>
-            <TouchableOpacity onPress={handleSaveProfile}>
-              <Save size={24} color="#16a34a" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Full Name</Text>
-              <TextInput
-                style={styles.textInput}
-                value={editedProfile?.name || ''}
-                onChangeText={(text) => setEditedProfile(prev => prev ? { ...prev, name: text } : null)}
-                placeholder="Enter your full name"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email</Text>
-              <TextInput
-                style={styles.textInput}
-                value={editedProfile?.email || ''}
-                onChangeText={(text) => setEditedProfile(prev => prev ? { ...prev, email: text } : null)}
-                placeholder="Enter your email"
-                keyboardType="email-address"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Farm Location</Text>
-              <TextInput
-                style={styles.textInput}
-                value={editedProfile?.location || ''}
-                onChangeText={(text) => setEditedProfile(prev => prev ? { ...prev, location: text } : null)}
-                placeholder="Enter your farm location"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Farm Name</Text>
-              <TextInput
-                style={styles.textInput}
-                value={editedProfile?.farmName || ''}
-                onChangeText={(text) => setEditedProfile(prev => prev ? { ...prev, farmName: text } : null)}
-                placeholder="Enter your farm name"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Preferred Treatment</Text>
-              <View style={styles.treatmentOptions}>
-                {['organic', 'chemical', 'both'].map((option) => (
-                  <TouchableOpacity
-                    key={option}
-                    style={[
-                      styles.treatmentOption,
-                      editedProfile?.preferences.preferredTreatment === option && styles.treatmentOptionActive
-                    ]}
-                    onPress={() => setEditedProfile(prev => prev ? {
-                      ...prev,
-                      preferences: {
-                        ...prev.preferences,
-                        preferredTreatment: option as 'organic' | 'chemical' | 'both'
-                      }
-                    } : null)}
-                  >
-                    <Text style={[
-                      styles.treatmentOptionText,
-                      editedProfile?.preferences.preferredTreatment === option && styles.treatmentOptionTextActive
-                    ]}>
-                      {option.charAt(0).toUpperCase() + option.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -409,33 +181,6 @@ const styles = StyleSheet.create({
   profileLocation: {
     fontSize: 14,
     color: '#9ca3af',
-  },
-  editProfileButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0fdf4',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#16a34a',
-  },
-  editProfileText: {
-    color: '#16a34a',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginTop: 12,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -552,74 +297,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#d1d5db',
     marginTop: 4,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
-  },
-  modalContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  textInput: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#1f2937',
-  },
-  treatmentOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  treatmentOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  treatmentOptionActive: {
-    backgroundColor: '#16a34a',
-    borderColor: '#16a34a',
-  },
-  treatmentOptionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4b5563',
-  },
-  treatmentOptionTextActive: {
-    color: '#ffffff',
   },
 });
