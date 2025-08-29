@@ -5,8 +5,6 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Camera as CameraIcon, FlipHorizontal, Zap, Bug, Leaf, ArrowRight, CircleCheck as CheckCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { DetectionService } from '@/services/DetectionService';
-import { StorageService } from '@/services/StorageService';
-import * as Animatable from 'react-native-animatable';
 
 type DetectionType = 'disease' | 'pest';
 type CropType = 'tomato' | 'pepper' | 'corn' | 'wheat' | 'other';
@@ -112,10 +110,6 @@ export default function CameraTab() {
         selectedDetectionType,
         selectedCrop
       );
-      
-      // Save detection to storage
-      await StorageService.saveDetection(result);
-      
       setAnalysisResult(result);
     } catch (error: any) {
       Alert.alert('Analysis Failed', error.message || 'Please try again');
@@ -212,7 +206,7 @@ export default function CameraTab() {
           </TouchableOpacity>
 
           {analysisResult && (
-            <Animatable.View animation="fadeInUp" style={styles.resultContainer}>
+            <View style={styles.resultContainer}>
               <View style={styles.resultHeader}>
                 <CheckCircle size={24} color="#10b981" />
                 <Text style={styles.resultTitle}>Analysis Complete</Text>
@@ -261,7 +255,7 @@ export default function CameraTab() {
                   )}
                 </View>
               </View>
-            </Animatable.View>
+            </View>
           )}
         </ScrollView>
       </SafeAreaView>
