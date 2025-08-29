@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Camera, History, BookOpen, Settings } from 'lucide-react-native';
+import { Chrome as Home, Camera, History, BookOpen, Settings } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
 
 export default function TabLayout() {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Camera, TrendingUp, AlertTriangle, Leaf, Sun, Activity, Shield, Zap } from 'lucide-react-native';
+import { Camera, TrendingUp, TriangleAlert as AlertTriangle, Leaf, Sun, Activity, Shield, Zap } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 
